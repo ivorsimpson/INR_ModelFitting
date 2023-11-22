@@ -95,6 +95,10 @@ images = CIFAR10_loader()
 
 
 def super_resolve_image(image, new_side_length):
+    # Define the number of iterations and the interval for printing the loss
+    num_iterations = 3000
+    ip_scale_factor = 5.0
+    print_interval = 10
 
     # Reshape the image to its original dimensions
     image = np.transpose(np.reshape(image, (3, 32, 32)), (1, 2, 0))
@@ -126,13 +130,11 @@ def super_resolve_image(image, new_side_length):
     image_t = torch.tensor(image.reshape(32*32, 3), device=dev, dtype=torch.float32) / 255.0
 
 
-    # Define the number of iterations and the interval for printing the loss
-    num_iterations = 2000
-    print_interval = 10
+    
 
     hidden_sizes = [64 for x in range(4)]
 
-    model = INR(input_size, hidden_sizes, output_size, ip_scale_factor=10.0)
+    model = INR(input_size, hidden_sizes, output_size, ip_scale_factor=ip_scale_factor)
     optimiser = torch.optim.Adam(model.parameters(), lr=5e-4)
     mf = ModelFitter(model, nn.MSELoss(), optimizer=optimiser, noise_std=0.0)
 
@@ -153,25 +155,28 @@ def super_resolve_image(image, new_side_length):
 
 import matplotlib.pyplot as plt
 no_examples = 4
-
+no_cols = 4
 for i in range(no_examples):
     image = images[i]
     recon, super_res = super_resolve_image(image, 128)
-
-    
-    plt.subplot(no_examples,3,i*3+1)
-    plt.imshow(np.transpose(np.reshape(image, (3, 32, 32)), (1, 2, 0)))
+    plt.subplot(no_examples,no_cols,i*no_cols+1)
+    plt.imshow(np.transpose(np.reshape(image, (3, 32, 32)), (1, 2, 0)), interpolation='bilinear')
     plt.axis('off')
     if i == 0:
-        plt.title("Original")
-    plt.subplot(no_examples,3,i*3+2)
-    plt.imshow(recon)
+        plt.title("Orig-Bilin")    
+    plt.subplot(no_examples,no_cols,i*no_cols+2)
+    plt.imshow(np.transpose(np.reshape(image, (3, 32, 32)), (1, 2, 0)), interpolation='lanczos')
+    plt.axis('off')
     if i == 0:
-        plt.title("Reconstruction")
-    plt.subplot(no_examples,3,i*3+3)
-    plt.imshow(super_res)
+        plt.title("Orig-Lanczos")
+    plt.subplot(no_examples,no_cols,i*no_cols+no_cols-1)
+    plt.imshow(recon, interpolation='lanczos')
     if i == 0:
-        plt.title("Super Resolution")
+        plt.title("Recon-Lanczos")
+    plt.subplot(no_examples,no_cols,i*no_cols+no_cols)
+    plt.imshow(super_res, interpolation='lanczos')
+    if i == 0:
+        plt.title("SuperRes-Lanczos")
 plt.show()
 
 
